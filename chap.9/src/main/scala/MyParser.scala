@@ -28,14 +28,17 @@ object MyParsers extends Parsers[MyParser] {
 
     override def slice[A] (p: MyParser[A]): MyParser[String] = MyParser(c => p.commit(c) match {
         case Left(e) => Left(e)
-        case Right((_, r)) => Right((c, Result(r.m, r.m)))
+        case Right((c2, r)) => Right((c2, Result(r.m, r.m)))
     })
 
     override def succeed[A] (a: A): MyParser[A] = MyParser(c => Right((c, Result("", a))))
 
     override def flatMap[A, B] (p: MyParser[A])(f: A => MyParser[B]): MyParser[B] = MyParser(c => p.commit(c) match {
         case Left(e) => Left(e)
-        case Right((c2, r)) => f(r.value).commit(c2)
+        case Right((c2, r)) => f(r.value).commit(c2) match {
+            case Left(e) => Left(e)
+            case Right((c3, r2)) => Right((c3, Result(r.m + r2.m, r2.value)))
+        }
     })
 
     override def regex (r: Regex): MyParser[String] = MyParser(c => r.findPrefixOf(c.start) match {

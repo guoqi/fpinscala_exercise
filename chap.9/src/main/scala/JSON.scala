@@ -29,7 +29,8 @@ object JSON {
         import P._
 
          // for json parser conveninent
-        def whiteChars: Parser[String] = regex("\\s*".r)
+        // def whiteChars: Parser[String] = regex("\\s*".r)
+        def whiteChars: Parser[String] = many(string(" ") | string("\n") | string("\t") | string("\r")).slice
         def braceOpen: Parser[String] = scope("expect { symbol")(string("{"))
         def braceClose: Parser[String] = scope("expect } symbol")(string("}"))
         def bracketOpen: Parser[String] = scope("expect [ symbol")(string("["))

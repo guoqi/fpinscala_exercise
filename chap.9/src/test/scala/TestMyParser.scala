@@ -57,7 +57,7 @@ class TestMyParser extends FunSuite {
         val p2 = p.flatMap(s => MyParsers.succeed(s.length))
         val err = (Location("-123", 0), "dont match word")
         assert(MyParsers.run(p.slice)("abcdef") == Right("abcdef"))
-        assert(MyParsers.run(p2.slice)("hhhhh") == Right(""))
+        assert(MyParsers.run(p2.slice)("hhhhh") == Right("hhhhh"))
         assert(MyParsers.run(p.slice)("123-456") == Right("123"))
         assert(MyParsers.run(p.slice)("-123") == Left(ParseError(List(err))))
     }
@@ -124,12 +124,16 @@ class TestMyParser extends FunSuite {
     private val p = JSON.parse(MyParsers)
 
     test("trim") {
-        def whiteChars: MyParser[String] = regex("\\s*".r)
+        val whiteCharList = many(string(" ") | string("\n") | string("\t") | string("\r"))
+        val whiteChars = whiteCharList.slice
         def trim[A](p: MyParser[A]): MyParser[A] = map3[String, A, String, A](whiteChars, p, whiteChars)((_, b, _) => b)
 
         val p = trim(string("hhh"))
+        val p1 = product(whiteChars, string("hhh"))
 
+        assert(MyParsers.run(whiteCharList)("\n\t\r ") == Right(List("\n", "\t", "\r", " ")))
         assert(MyParsers.run(whiteChars)("\n\t\r hhh") == Right("\n\t\r "))
+        assert(MyParsers.run(p1)("     hhh") == Right(("     ", "hhh")))
         assert(MyParsers.run(p)("\n\t\rhhhh   ") == Right("hhh"))
     }
 
