@@ -4,8 +4,12 @@ import org.scalatest.junit.JUnitRunner
 import parser._
 
 @RunWith(classOf[JUnitRunner])
-class TestMyParser extends FunSuite {
-    import MyParsers._
+class TestBookParser extends FunSuite {
+    import bookParser._
+    import bookParser.BookParsers._
+
+    type MyParser[+A] = BookParser[A]
+    private val MyParsers = BookParsers
 
     test("string") {
         val strParser = scope("dont match abc")(string("abc"))
@@ -186,5 +190,13 @@ class TestMyParser extends FunSuite {
         ))
         val j = MyParsers.run(p)(json1)
         assert(j == Right(json2))
+    }
+
+    test("JSON - reportError") {
+        val json1 = "\t\t{ \"a\": \"jjjj\", \"b\": abc } "
+        MyParsers.run(p)(json1) match {
+            case Left(e) => println(reportError(e))
+            case r => r
+        }
     }
 }

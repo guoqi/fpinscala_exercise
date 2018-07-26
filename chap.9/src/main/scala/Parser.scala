@@ -4,7 +4,16 @@ import scala.util.matching.Regex
 
 trait Parser[+A]
 
-case class ParseError(stack: List[(Location, String)])
+case class ParseError(stack: List[(Location, String)]) {
+    // helper function
+    def push(loc: Location, msg: String): ParseError = copy(stack = (loc, msg) :: stack)
+
+    def latest: Option[(Location, String)] = stack.lastOption
+
+    def latestLoc: Option[Location] = latest map (_._1)
+
+    def label[A](s: String): ParseError = ParseError(latestLoc.map((_, s)).toList)
+}
 
 case class Location(input: String, offset: Int = 0) {
     lazy val line: Int = input.slice(0, offset).count(_ == '\n') + 1 // line count from 1
@@ -12,6 +21,11 @@ case class Location(input: String, offset: Int = 0) {
         case -1 => offset + 1   // only one line or at the first line
         case lineStart => offset - lineStart
     }
+
+    // helper function
+    def toError(msg: String): ParseError = ParseError(List((this, msg)))
+
+    def advanceBy(n: Int): Location = copy(offset = offset + n)
 }
 
 trait Parsers[Parser[+_]] {
@@ -97,7 +111,12 @@ trait Parsers[Parser[+_]] {
     // append msg to error message stack
     def scope[A](msg: String)(p: Parser[A]): Parser[A]
 
-    // def attempt[A](p: Parser[A]): Parser[A]
+    def attempt[A](p: Parser[A]): Parser[A]
+
+    // Exercise 9.16
+    def reportError(e: ParseError): String = e.stack.groupBy(s => s._1).map(
+        x => "Error at line %d, col %d\n".format(x._1.line, x._1.col) + x._2.foldLeft("")((b, c) => "\t" + b + c._2 + "\n")
+    ).foldLeft("")((b, s) => b + s)
 
     // def errorLocation(e: ParseError): Location
 

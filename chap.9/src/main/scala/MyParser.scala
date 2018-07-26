@@ -2,6 +2,7 @@ import parser._
 
 import scala.util.matching.Regex
 
+// This can be considered a state class and will be delivered between primitives operators
 case class Cursor(input: String, offset: Int) {
     lazy val start: String = input.substring(offset)
 }
@@ -18,7 +19,7 @@ object MyParsers extends Parsers[MyParser] {
     }
 
     override def string (s: String): MyParser[String] = MyParser(c => {
-        if (c.start.startsWith(s)) Right(Cursor(c.input, c.offset + s.length), Result(s, s)) else Left(ParseError(List()))
+        if (c.start.startsWith(s)) Right(Cursor(c.input, c.offset + s.length), Result(s, s)) else Left(ParseError(List((Location(c.input, c.offset), "Expected: " + s))))
     })
 
     override def or[A] (p1: MyParser[A], p2: => MyParser[A]): MyParser[A] = MyParser(c => p1.commit(c) match {
@@ -42,7 +43,7 @@ object MyParsers extends Parsers[MyParser] {
     })
 
     override def regex (r: Regex): MyParser[String] = MyParser(c => r.findPrefixOf(c.start) match {
-        case None => Left(ParseError(Nil))
+        case None => Left(ParseError(List((Location(c.input, c.offset), "Regex match error: " + r.toString()))))
         case Some(x) => Right(Cursor(c.input, c.offset + x.length), Result(x, x))
     })
 
@@ -55,6 +56,8 @@ object MyParsers extends Parsers[MyParser] {
         case Left(e) => Left(ParseError((Location(c.input, c.offset), msg) :: e.stack))
         case Right(x) => Right(x)
     })
+
+    override def attempt[A] (p: MyParser[A]): MyParser[A] = ???
 
     // override def errorLocation (e: ParseError): Location = ???
 

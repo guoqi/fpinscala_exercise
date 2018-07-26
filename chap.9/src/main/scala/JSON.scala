@@ -31,30 +31,26 @@ object JSON {
          // for json parser conveninent
         // def whiteChars: Parser[String] = regex("\\s*".r)
         def whiteChars: Parser[String] = many(string(" ") | string("\n") | string("\t") | string("\r")).slice
-        def braceOpen: Parser[String] = scope("expect { symbol")(string("{"))
-        def braceClose: Parser[String] = scope("expect } symbol")(string("}"))
-        def bracketOpen: Parser[String] = scope("expect [ symbol")(string("["))
-        def bracketClose: Parser[String] = scope("expect ] symbol")(string("]"))
-        def comma: Parser[String] = scope("expect , symbol")(string(","))
-        def colon: Parser[String] = scope("expect : symbol")(string(":"))
-        def quota: Parser[String] = scope("expect \" symbol")(string("\""))
+        def braceOpen: Parser[String] = string("{")
+        def braceClose: Parser[String] = string("}")
+        def bracketOpen: Parser[String] = string("[")
+        def bracketClose: Parser[String] = string("]")
+        def comma: Parser[String] = string(",")
+        def colon: Parser[String] = string(":")
+        def quota: Parser[String] = string("\"")
 
         // trim white characters
         def trim[A](p: Parser[A]): Parser[A] = map3(whiteChars, p, whiteChars)((_, b, _) => b)
 
         // real syntax symbol
-        def bool: Parser[JBool] = scope("boolean value must be 'true' or 'false'")(trim(map(string("true") | string("false"))({
+        def bool: Parser[JBool] = trim(map(string("true") | string("false"))({
             case "true" => JBool(true)
             case "false" => JBool(false)
-        })))
+        }))
 
-        def str: Parser[JString] = scope("string must be consist of alphabet, number, _, - and spaces")(
-            trim(map3(quota, regex("[a-zA-A0-9_\\- ]+".r), quota)((_, c, _) => JString(c)))
-        )
+        def str: Parser[JString] = trim(map3(quota, regex("[a-zA-A0-9_\\- ]+".r), quota)((_, c, _) => JString(c)))
 
-        def number: Parser[JNumber] = scope("invalid number value")(
-            trim(regex("[+-]*[1-9]+[0-9]*(.[0-9]+)?|0.[0-9]+".r) map (a => JNumber(a.toDouble)))
-        )
+        def number: Parser[JNumber] = trim(regex("[+-]*[1-9]+[0-9]*(.[0-9]+)?|0.[0-9]+".r) map (a => JNumber(a.toDouble)))
 
         def value: Parser[JSON] = bool | str | number | array | obj
 
