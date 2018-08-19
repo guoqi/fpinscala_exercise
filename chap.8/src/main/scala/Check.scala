@@ -6,6 +6,9 @@ import scala.collection.immutable.Stream.Empty
 
 
 case class Gen[+A](sample: State[RNG, A]) {
+
+    def map[B](f: A => B): Gen[B] = Gen(sample.map(a => f(a)))
+
     // Exercise 8.6
     def flatMap[B](f: A => Gen[B]): Gen[B] = Gen(sample.flatMap(a => f(a).sample))
 
@@ -15,7 +18,14 @@ case class Gen[+A](sample: State[RNG, A]) {
     def unsized: SGen[A] = SGen(_ => this)
 }
 
-case class SGen[+A](forSize: Int => Gen[A])
+case class SGen[+A](forSize: Int => Gen[A]) {
+    // Exercise 8.11
+    def apply(n: Int): Gen[A] = forSize(n)
+
+    def map[B](f: A => B): SGen[B] = SGen(n => this(n).map(f))
+
+    def flatMap[B](f: A => SGen[B]): SGen[B] = SGen(n => this(n).flatMap(f(_)(n)))
+}
 
 trait Result {
     def isFalsified: Boolean
@@ -82,22 +92,6 @@ object Gen {
     })
 
 }
-
-// Exercise 8.11
-object SGen {
-
-    case class ConvertGen[A](n: Int)(g: Gen[A]) {
-        def unzied: Gen[A] = g;
-        def sized: SGen[A] = _ => g
-    }
-
-    implicit def unit[A](f: Int => Gen[A]): SGen[A] = SGen(f)
-
-    implicit def sized[A](a: SGen[A])(n: Int): Gen[A] = a.forSize(n)
-
-    def flatMap[A, B](g: SGen[A])(f: A => SGen[B]): SGen[B] = { n: Int => sized(g)(n).flatMap(a => sized(f(a))(n)) }
-}
-
 
 object Prop {
     /**
