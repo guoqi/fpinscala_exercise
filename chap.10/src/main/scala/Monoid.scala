@@ -24,7 +24,7 @@ trait Foldable[F[_]]{
     def concatenate[A](as: F[A])(m: Monoid[A]): A = foldLeft(as)(m.zero)(m.op)
 
     // Exercise 10.15
-    def toList[A](fa: F[A]): List[A] = foldLeft[A, List[A]](fa)(Nil)((l, x) => x::l)
+    def toList[A](fa: F[A]): List[A] = foldRight[A, List[A]](fa)(Nil)((x, l) => x::l)
 }
 
 sealed trait Tree[+A]
@@ -117,9 +117,30 @@ object Exercise {
     // Exercise 10.10
     val wcMonoid: Monoid[WC] = new Monoid[WC] {
         override def op (a1: WC, a2: WC): WC = (a1, a2) match {
-            case (Stub(s1), Stub(s2)) => Stub(s1 + s2)
-            case (Stub(s), Part(l, w, r)) => Part(s + l, w, r)
-            case (Part(l, w, r), Stub(s)) => Part(l, w, r + s)
+            case (Stub(s1), Stub(s2)) => {
+                val t = (s1 + s2).split("[^a-zA-Z]")
+                t.length match {
+                    case 0 => Stub(s1 + s2)
+                    case 1 => Stub(s1 + s2) // haven't seen a complete word
+                    case _ => Part(t(0), t.length - 2, t(t.length - 1))
+                }
+            }
+            case (Stub(s), Part(l, w, r)) => {
+                val t = (s + l).split("[^a-zA-Z]")
+                t.length match {
+                    case 0 => Part(s + l, w, r)
+                    case 1 => Part(s + l, w, r)
+                    case _ => Part(t(0), t.length - 2 + w, r)
+                }
+            }
+            case (Part(l, w, r), Stub(s)) => {
+                val t = (r + s).split("[^a-zA-Z]")
+                t.length match {
+                    case 0 => Part(l, w, r + s)
+                    case 1 => Part(l, w, r + s)
+                    case _ => Part(l, t.length - 2 + w, t(0))
+                }
+            }
             case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + w2 + (r1 + l2).split("[^a-zA-Z]").length, r2)
         }
 
@@ -241,7 +262,7 @@ object Exercise {
     }
 
     // Exercise 10.16
-    def pruductMonoid[A, B](am: Monoid[A], bm: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+    def productMonoid[A, B](am: Monoid[A], bm: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
         override def op (a1: (A, B), a2: (A, B)): (A, B) = (am.op(a1._1, a2._1), bm.op(a1._2, a2._2))
 
         override def zero: (A, B) = (am.zero, bm.zero)

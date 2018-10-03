@@ -56,7 +56,7 @@ case class Prop(run: (Int, Int, RNG) => Result) {
         case r => r
     })
 
-    def check(): Unit = run(DEFAULT_CASE_NUM, SimpleRNG(100)) match {
+    def check(): Unit = run(DEFAULT_CASE_NUM, 5, SimpleRNG(100)) match {
         case Passed => println("%d cases passed ok".format(DEFAULT_CASE_NUM))
         case Falsified(failure, successes) => println("failed after %d passed\nfailure case: %s".format(successes, failure))
     }
